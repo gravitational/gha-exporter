@@ -161,14 +161,14 @@ func (c *Collector) collectRun(ctx context.Context, repo string, run *github.Wor
 		default:
 			log.Printf("Incomplete run: %d: %s", run.GetID(), run.GetName())
 		}
-	case c.seenRuns[*run.ID]:
+	case c.seenRuns[run.GetID()]:
 		log.Printf("Ignoring seen run: %d: %s", run.GetID(), run.GetName())
 	default:
 		if !ignoreCompleted {
 			err = c.collectJobs(ctx, repo, run)
 		}
 		if err == nil {
-			c.seenRuns[*run.ID] = true
+			c.seenRuns[run.GetID()] = true
 			log.Printf("Completed: %d: %s\n", run.GetID(), run.GetName())
 		}
 	}
@@ -198,9 +198,9 @@ func (c *Collector) collectJobs(ctx context.Context, repo string, run *github.Wo
 }
 
 func countJobs(run *github.WorkflowRun, jobs []*github.WorkflowJob) {
-	workflowName := path.Base(*run.Path)
+	workflowName := path.Base(run.GetPath())
 	workflowName = strings.TrimSuffix(workflowName, path.Ext(workflowName))
-	repo := *run.Repository.Name
+	repo := run.GetRepository().GetName()
 	ref := makeRef(run)
 
 	var workflowRunTime time.Duration
@@ -208,10 +208,10 @@ func countJobs(run *github.WorkflowRun, jobs []*github.WorkflowJob) {
 		var jobRunTime time.Duration
 		for _, step := range job.Steps {
 			stepRunCountVec.WithLabelValues(
-				repo, ref, workflowName, *job.Name, *step.Name, *step.Conclusion,
+				repo, ref, workflowName, job.GetName(), step.GetName(), step.GetConclusion(),
 			).Add(1)
 
-			if *step.Conclusion != "success" {
+			if step.GetConclusion() != "success" {
 				continue
 			}
 			if step.StartedAt == nil || step.CompletedAt == nil {
@@ -219,26 +219,26 @@ func countJobs(run *github.WorkflowRun, jobs []*github.WorkflowJob) {
 			}
 			stepRunTime := step.CompletedAt.Time.Sub(step.StartedAt.Time)
 			stepRunTimeVec.WithLabelValues(
-				repo, ref, workflowName, *job.Name, *step.Name,
+				repo, ref, workflowName, job.GetName(), step.GetName(),
 			).Add(stepRunTime.Seconds())
 			jobRunTime += stepRunTime
 		}
 		jobRunCountVec.WithLabelValues(
-			repo, ref, workflowName, *job.Name, *job.Conclusion,
+			repo, ref, workflowName, job.GetName(), job.GetConclusion(),
 		).Add(1)
-		if *job.Conclusion != "success" {
+		if job.GetConclusion() != "success" {
 			continue
 		}
 		jobRunTimeVec.WithLabelValues(
-			repo, ref, workflowName, *job.Name,
+			repo, ref, workflowName, job.GetName(),
 		).Add(jobRunTime.Seconds())
 
 		workflowRunTime += jobRunTime
 	}
 
-	workflowRunCountVec.WithLabelValues(repo, ref, workflowName, *run.Conclusion).Add(1)
+	workflowRunCountVec.WithLabelValues(repo, ref, workflowName, run.GetConclusion()).Add(1)
 
-	if *run.Conclusion != "success" {
+	if run.GetConclusion() != "success" {
 		return
 	}
 
