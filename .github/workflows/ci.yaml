@@ -1,0 +1,27 @@
+name: CI
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  cancel-in-progress: true
+  group: "Only run one instance of CI for PR #${{ github.event.number }}"
+
+jobs:
+  verify-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: Install Earthly
+        uses: earthly/actions-setup@be3fe0c1f84e9776b5a184d21bf7a4a779ea2e6b # v1.0.8
+        with:
+          # renovate: earthly-version
+          version: v0.8.4
+      - name: Lint Go code
+        working-directory: tools/ami-cleanup
+        run: earthly -ci +lint --OUTPUT_FORMAT=github-actions
+      - name: Run Go tests
+        working-directory: tools/ami-cleanup
+        run: earthly -ci +test --OUTPUT_FORMAT=github-actions
