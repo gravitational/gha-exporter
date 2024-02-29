@@ -1,0 +1,36 @@
+name: CD
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+**"
+
+concurrency:
+  group: "Only run one instance of CD for ${{ github.ref_name }}"
+
+jobs:
+  cut-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate the release tag
+        env:
+          # This is copy/pasted from https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
+          SEMVER_TAG_REGEX: ^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
+          GIT_TAG: ${{ github.ref_name }}
+        run: |
+          # Check if the extracted version is a valid semver
+          if ! $(echo "$GIT_TAG" | grep --perl-regexp --quiet "$SEMVER_TAG_REGEX"); then
+              echo "Extracted version $GIT_TAG is not a valid semver" >&2
+              exit 1
+          fi
+      - name: Checkout repo
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: Install Earthly
+        uses: earthly/actions-setup@be3fe0c1f84e9776b5a184d21bf7a4a779ea2e6b # v1.0.8
+        with:
+          # renovate: earthly-version
+          version: v0.8.4
+      - name: Cut a new release for ${{ env.SEMVER_TAG }}
+        env:
+          GIT_TAG: ${{ github.ref_name }}
+        working-directory: tools/ami-cleanup
+        run: earthly -ci +release --GIT_TAG="$GIT_TAG"
