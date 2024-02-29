@@ -29,7 +29,7 @@ jobs:
         with:
           # renovate: earthly-version
           version: v0.8.4
-      - name: Cut a new release for ${{ env.SEMVER_TAG }}
+      - name: Cut a new release for ${{ github.ref_name }}
         env:
           GIT_TAG: ${{ github.ref_name }}
         working-directory: tools/ami-cleanup

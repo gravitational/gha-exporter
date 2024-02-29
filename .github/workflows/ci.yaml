@@ -3,6 +3,10 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - "*.md"
+      - ".earthlyignore"
+      - "LICENSE"
 
 concurrency:
   cancel-in-progress: true
