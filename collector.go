@@ -86,16 +86,17 @@ func (c *Collector) Run(ctx context.Context) {
 	defer func() { log.Print("Collector finished: ", ctx.Err()) }()
 
 	for ; ctx.Err() == nil; time.Sleep(c.cfg.Sleep) {
-		// TODO: loop over repos
-		if err := c.collectRepo(ctx, c.cfg.Repos[0]); err != nil {
-			log.Print(err)
+		for _, repo := range c.cfg.Repos {
+			if err := c.collectRepo(ctx, repo); err != nil {
+				log.Print(err)
+			}
 		}
 	}
 }
 
 func (c *Collector) collectRepo(ctx context.Context, repo string) error {
-	log.Printf("Collecting repo: %s", repo)
-	defer func() { log.Printf("Completed collecting repo: %s", repo) }()
+	log.Printf("Started collecting repo: %s", repo)
+	defer func() { log.Printf("Finished collecting repo: %s", repo) }()
 
 	// Recreate client on demand after errors and on startup
 	if c.client == nil {
@@ -156,20 +157,20 @@ func (c *Collector) collectRun(ctx context.Context, repo string, run *github.Wor
 			// Ignore runs without a created timestamp
 		case run.CreatedAt.Before(cutoff):
 			cutoff = run.CreatedAt.Time
-			log.Printf("Incomplete run: %d: %s (new cutoff: %v)",
-				run.GetID(), run.GetName(), cutoff)
+			log.Printf("open: %s/%d: %s (new cutoff: %v)",
+				repo, run.GetID(), run.GetName(), cutoff)
 		default:
-			log.Printf("Incomplete run: %d: %s", run.GetID(), run.GetName())
+			log.Printf("open: %s/%d: %s", repo, run.GetID(), run.GetName())
 		}
 	case c.seenRuns[run.GetID()]:
-		log.Printf("Ignoring seen run: %d: %s", run.GetID(), run.GetName())
+		log.Printf("seen: %s/%d: %s", repo, run.GetID(), run.GetName())
 	default:
 		if !ignoreCompleted {
 			err = c.collectJobs(ctx, repo, run)
 		}
 		if err == nil {
 			c.seenRuns[run.GetID()] = true
-			log.Printf("Completed: %d: %s\n", run.GetID(), run.GetName())
+			log.Printf("done: %s/%d: %s\n", repo, run.GetID(), run.GetName())
 		}
 	}
 
