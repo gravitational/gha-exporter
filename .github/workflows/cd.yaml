@@ -38,11 +38,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Check docker config
-        run: |
-          cat ~/.docker/config.json
-          exit 1
+      # - name: Check docker config
+      #   run: |
+      #     cat ~/.docker/config.json
+      #     exit 1
       - name: Cut a new release for ${{ github.ref_name }}
         env:
           GIT_TAG: ${{ github.ref_name }}
-        run: earthly -ci --push +release --GIT_TAG="$GIT_TAG"
+          GH_TOKEN: ${{ github.token }}
+        run: earthly -ci --push +release --GIT_TAG="$GIT_TAG" --GH_TOKEN="$GH_TOKEN"

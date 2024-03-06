@@ -175,7 +175,13 @@ clean:
 release:
     ARG --required GIT_TAG  # This global var is redeclared here to ensure that it is set via `--required`
     ARG CONTAINER_REGISTRY="ghcr.io/gravitational/gha-exporter/"
+    ARG EARTHLY_PUSH
     ARG NATIVEARCH
+
+    # Only require this when `--push` is set to allow for local testing
+    IF [ $EARTHLY_PUSH ]
+        ARG --required GH_TOKEN
+    END
 
     # Create GH release and upload artifact(s)
     FROM  --platform="linux/$NATIVEARCH" alpine:3.19.0
@@ -185,7 +191,8 @@ release:
     COPY (+tarball/* --GOOS=linux --GOARCH=amd64) (+tarball/* --GOOS=linux --GOARCH=arm64) (+tarball/* --GOOS=darwin --GOARCH=arm64) .
     COPY CHANGELOG.md /CHANGELOG.md
     # Run commands with "--push" set will only run when the "--push" arg is provided via CLI
-    RUN --push gh release create --draft --verify-tag --notes-file "/CHANGELOG.md" --prerelease "$GIT_TAG" "./*"
+    RUN --push gh auth login && \
+        gh release create --draft --verify-tag --notes-file "/CHANGELOG.md" --prerelease "$GIT_TAG" "./*"
 
     # Build container images and push them
     BUILD --platform=linux/amd64 --platform=linux/arm64 +container-image --CONTAINER_REGISTRY="$CONTAINER_REGISTRY"
