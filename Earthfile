@@ -186,8 +186,17 @@ release:
     WORKDIR /release_artifacts
     COPY (+tarball/* --GOOS=linux --GOARCH=amd64) (+tarball/* --GOOS=linux --GOARCH=arm64) (+tarball/* --GOOS=darwin --GOARCH=arm64) .
     COPY CHANGELOG.md /CHANGELOG.md
+
+    # Determine if the prerelease flag should be set
+    IF [ "${GIT_TAG#*-}" != "$GIT_TAG" ]
+        LET PRERELEASE_FLAG="--prerelease"
+    END
+
     # Run commands with "--push" set will only run when the "--push" arg is provided via CLI
-    RUN --push --secret GH_TOKEN gh release create --draft --verify-tag --notes-file "/CHANGELOG.md" --prerelease "$GIT_TAG" ./*
+    RUN --push --secret GH_TOKEN \
+        gh release create \
+        --draft --verify-tag --notes-file "/CHANGELOG.md" $PRERELEASE_FLAG "$GIT_TAG" --repo "gravitational/gha-exporter" \
+        ./*
 
     # Build container images and push them
     BUILD --platform=linux/amd64 --platform=linux/arm64 +container-image --CONTAINER_REGISTRY="$CONTAINER_REGISTRY"
