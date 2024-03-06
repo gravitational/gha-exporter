@@ -178,12 +178,6 @@ release:
     ARG EARTHLY_PUSH
     ARG NATIVEARCH
 
-    # Only require this when `--push` is set to allow for local testing
-    FROM  --platform="linux/$NATIVEARCH" alpine:3.19.0
-    IF [ $EARTHLY_PUSH ]
-        ARG --required GH_TOKEN
-    END
-
     # Create GH release and upload artifact(s)
     # Unfortunately GH does not release a container image for their CLI, see https://github.com/cli/cli/issues/2027
     RUN apk add github-cli
@@ -191,8 +185,7 @@ release:
     COPY (+tarball/* --GOOS=linux --GOARCH=amd64) (+tarball/* --GOOS=linux --GOARCH=arm64) (+tarball/* --GOOS=darwin --GOARCH=arm64) .
     COPY CHANGELOG.md /CHANGELOG.md
     # Run commands with "--push" set will only run when the "--push" arg is provided via CLI
-    RUN --push gh auth login && \
-        gh release create --draft --verify-tag --notes-file "/CHANGELOG.md" --prerelease "$GIT_TAG" "./*"
+    RUN --push --secret GH_TOKEN gh release create --draft --verify-tag --notes-file "/CHANGELOG.md" --prerelease "$GIT_TAG" "./*"
 
     # Build container images and push them
     BUILD --platform=linux/amd64 --platform=linux/arm64 +container-image --CONTAINER_REGISTRY="$CONTAINER_REGISTRY"

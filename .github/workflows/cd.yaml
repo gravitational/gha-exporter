@@ -46,4 +46,4 @@ jobs:
         env:
           GIT_TAG: ${{ github.ref_name }}
           GH_TOKEN: ${{ github.token }}
-        run: earthly -ci --push +release --GIT_TAG="$GIT_TAG" --GH_TOKEN="$GH_TOKEN"
+        run: earthly -ci --push --secret GH_TOKEN +release --GIT_TAG="$GIT_TAG"
