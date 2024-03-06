@@ -10,6 +10,9 @@ concurrency:
 jobs:
   cut-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Validate the release tag
         env:
@@ -29,8 +32,13 @@ jobs:
         with:
           # renovate: earthly-version
           version: v0.8.4
-      - name: Cut a new release for ${{ env.SEMVER_TAG }}
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Cut a new release for ${{ github.ref_name }}
         env:
           GIT_TAG: ${{ github.ref_name }}
-        working-directory: tools/ami-cleanup
-        run: earthly -ci +release --GIT_TAG="$GIT_TAG"
+        run: earthly -ci --push +release --GIT_TAG="$GIT_TAG"

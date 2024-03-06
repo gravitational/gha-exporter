@@ -1,2 +1,5 @@
 Earthfile
 .earthlyignore
+outputs/
+.gitignore
+go-github

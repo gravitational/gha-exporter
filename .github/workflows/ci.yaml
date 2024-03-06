@@ -3,6 +3,10 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - "*.md"
+      - ".earthlyignore"
+      - "LICENSE"
 
 concurrency:
   cancel-in-progress: true
@@ -20,8 +24,6 @@ jobs:
           # renovate: earthly-version
           version: v0.8.4
       - name: Lint Go code
-        working-directory: tools/ami-cleanup
         run: earthly -ci +lint --OUTPUT_FORMAT=github-actions
       - name: Run Go tests
-        working-directory: tools/ami-cleanup
         run: earthly -ci +test --OUTPUT_FORMAT=github-actions
