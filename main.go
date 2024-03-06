@@ -7,6 +7,11 @@ import (
 	"github.com/alecthomas/kong"
 )
 
+var (
+	// Not yet used
+	Version = "0.0.0-dev"
+)
+
 type CLI struct {
 	AppID         int64         `required:"" env:"GHA_APP_ID" help:"GitHub App ID of application to authenticate as"`
 	AppKey        string        `required:"" env:"GHA_APP_KEY" help:"Private key of GitHub App for the App ID"`
