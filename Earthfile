@@ -187,7 +187,7 @@ release:
     COPY (+tarball/* --GOOS=linux --GOARCH=amd64) (+tarball/* --GOOS=linux --GOARCH=arm64) (+tarball/* --GOOS=darwin --GOARCH=arm64) .
     COPY CHANGELOG.md /CHANGELOG.md
     # Run commands with "--push" set will only run when the "--push" arg is provided via CLI
-    RUN --push --secret GH_TOKEN gh release create --draft --verify-tag --notes-file "/CHANGELOG.md" --prerelease "$GIT_TAG" "./*"
+    RUN --push --secret GH_TOKEN gh release create --draft --verify-tag --notes-file "/CHANGELOG.md" --prerelease "$GIT_TAG" ./*
 
     # Build container images and push them
     BUILD --platform=linux/amd64 --platform=linux/arm64 +container-image --CONTAINER_REGISTRY="$CONTAINER_REGISTRY"
