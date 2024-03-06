@@ -10,7 +10,8 @@ ARG --global GOARCH=$USERARCH
 
 # TODO remove this, this is a temp workaround
 download-go-github:
-    FROM alpine/git:2.43.0
+    ARG NATIVEARCH
+    FROM --platform="linux/$NATIVEARCH" alpine/git:2.43.0
     WORKDIR /src
     RUN git clone --single-branch --depth 1 --branch v60.0.0 https://github.com/google/go-github.git .
     SAVE ARTIFACT go.mod
@@ -20,7 +21,7 @@ download-go-github:
 build-go-github-patch:
     ARG NATIVEARCH
     # Pull the Go version from the project
-    FROM alpine:3.19.0
+    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
     WORKDIR /gomod
     COPY +download-go-github/go.mod .
     LET GO_VERSION=$(sed -rn 's/^go (.*)$/\1/p' go.mod)
@@ -41,16 +42,17 @@ build-go-github-patch:
 
 # This target is used to setup a common Go environment used for both builds and tests.
 go-environment:
+    ARG NATIVEARCH
     # This keeps the Go version set in a single place
     # A container is used to pin the `sed` dependency. `LOCALLY` could be used instead, but is
     # disallowed by the `--strict` Earthly flag which is used to help enfore reproducability.
-    FROM alpine:3.19.0
+    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
     WORKDIR /gomod
     COPY go.mod .
     LET GO_VERSION=$(sed -rn 's/^go (.*)$/\1/p' go.mod)
     
     # Setup Go.
-    FROM "golang:$GO_VERSION"
+    FROM --platform="linux/$NATIVEARCH" "golang:$GO_VERSION"
     WORKDIR /go/src
     CACHE --sharing shared --id gomodcache $(go env GOMODCACHE)
 
@@ -112,9 +114,10 @@ container-image:
 
 # Same as `binary`, but wraps the output in a tarball.
 tarball:
+    ARG NATIVEARCH
     ARG TARBALL_NAME="$BINARY_NAME-$GOOS-$GOARCH.tar.gz"
 
-    FROM alpine:3.19.0
+    FROM  --platform="linux/$NATIVEARCH" alpine:3.19.0
     WORKDIR /tarball
     COPY +binary/* .
     RUN tar -czvf "$TARBALL_NAME" *
@@ -172,9 +175,10 @@ clean:
 release:
     ARG --required GIT_TAG  # This global var is redeclared here to ensure that it is set via `--required`
     ARG CONTAINER_REGISTRY="ghcr.io/gravitational/gha-exporter/"
+    ARG NATIVEARCH
 
     # Create GH release and upload artifact(s)
-    FROM alpine:3.19.0
+    FROM  --platform="linux/$NATIVEARCH" alpine:3.19.0
     # Unfortunately GH does not release a container image for their CLI, see https://github.com/cli/cli/issues/2027
     RUN apk add github-cli
     WORKDIR /release_artifacts
