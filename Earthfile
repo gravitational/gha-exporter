@@ -179,6 +179,8 @@ release:
     ARG NATIVEARCH
 
     # Create GH release and upload artifact(s)
+    FROM  --platform="linux/$NATIVEARCH" alpine:3.19.0
+
     # Unfortunately GH does not release a container image for their CLI, see https://github.com/cli/cli/issues/2027
     RUN apk add github-cli
     WORKDIR /release_artifacts
