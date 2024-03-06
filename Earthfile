@@ -179,12 +179,12 @@ release:
     ARG NATIVEARCH
 
     # Only require this when `--push` is set to allow for local testing
+    FROM  --platform="linux/$NATIVEARCH" alpine:3.19.0
     IF [ $EARTHLY_PUSH ]
         ARG --required GH_TOKEN
     END
 
     # Create GH release and upload artifact(s)
-    FROM  --platform="linux/$NATIVEARCH" alpine:3.19.0
     # Unfortunately GH does not release a container image for their CLI, see https://github.com/cli/cli/issues/2027
     RUN apk add github-cli
     WORKDIR /release_artifacts
