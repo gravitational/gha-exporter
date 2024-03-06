@@ -3,6 +3,7 @@ VERSION 0.8
 ARG --global GIT_TAG
 ARG --global BINARY_NAME="gha-exporter"
 ARG --global IMAGE_NAME="gha-exporter"
+ARG --global REPO_NAME="gravitational/gha-exporter"
 ARG --global USEROS
 ARG --global USERARCH
 ARG --global GOOS=$USEROS
@@ -10,7 +11,8 @@ ARG --global GOARCH=$USERARCH
 
 # TODO remove this, this is a temp workaround
 download-go-github:
-    FROM alpine/git:2.43.0
+    ARG NATIVEARCH
+    FROM --platform="linux/$NATIVEARCH" alpine/git:2.43.0
     WORKDIR /src
     RUN git clone --single-branch --depth 1 --branch v60.0.0 https://github.com/google/go-github.git .
     SAVE ARTIFACT go.mod
@@ -20,7 +22,7 @@ download-go-github:
 build-go-github-patch:
     ARG NATIVEARCH
     # Pull the Go version from the project
-    FROM alpine:3.19.0
+    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
     WORKDIR /gomod
     COPY +download-go-github/go.mod .
     LET GO_VERSION=$(sed -rn 's/^go (.*)$/\1/p' go.mod)
@@ -41,16 +43,17 @@ build-go-github-patch:
 
 # This target is used to setup a common Go environment used for both builds and tests.
 go-environment:
+    ARG NATIVEARCH
     # This keeps the Go version set in a single place
     # A container is used to pin the `sed` dependency. `LOCALLY` could be used instead, but is
     # disallowed by the `--strict` Earthly flag which is used to help enfore reproducability.
-    FROM alpine:3.19.0
+    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
     WORKDIR /gomod
     COPY go.mod .
     LET GO_VERSION=$(sed -rn 's/^go (.*)$/\1/p' go.mod)
     
     # Setup Go.
-    FROM "golang:$GO_VERSION"
+    FROM --platform="linux/$NATIVEARCH" "golang:$GO_VERSION"
     WORKDIR /go/src
     CACHE --sharing shared --id gomodcache $(go env GOMODCACHE)
 
@@ -112,9 +115,10 @@ container-image:
 
 # Same as `binary`, but wraps the output in a tarball.
 tarball:
+    ARG NATIVEARCH
     ARG TARBALL_NAME="$BINARY_NAME-$GOOS-$GOARCH.tar.gz"
 
-    FROM alpine:3.19.0
+    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
     WORKDIR /tarball
     COPY +binary/* .
     RUN tar -czvf "$TARBALL_NAME" *
@@ -168,20 +172,119 @@ clean:
         RUN docker image rm --force "$IMAGE"
     END
 
+changelog-environment:
+    ARG NATIVEARCH
+    FROM --platform="linux/$NATIVEARCH" node:21.6-alpine3.18
+    WORKDIR /changelog
+    CACHE --sharing shared --id npm $(echo "$HOME/.npm")
+    RUN npm install --global '@geut/chan@3.2.9'
+
+build-release-changelog:
+    ARG --required GIT_TAG
+    FROM +changelog-environment
+    COPY CHANGELOG.md .
+    
+    IF [ "${GIT_TAG#*-}" != "$GIT_TAG" ]
+        LET FLAGS="--allow-prerelease"
+    ELSE
+        LET FLAGS="--merge-prerelease"
+    END
+
+    RUN CH_OUTPUT=$( \
+            chan release \
+                --git-compare-template "https://github.com/$REPO_NAME/compare/[prev]...[next]" \
+                --git-release-template "httpx://github.com/$REPO_NAME/releases/tag/[next]" \
+                $FLAGS \
+                "$GIT_TAG" \
+    ) && \
+    echo "$CH_OUTPUT" && \  # Log to stdout for debugging
+    # Check if the release had any changes
+    echo "$CH_OUTPUT" | grep -qv "not new" || ( \
+        echo -e "\n\n\nChangelog contains no unreleased changes, aborting\n\n\n"; exit 1 \
+    )
+    SAVE ARTIFACT CHANGELOG.md AS LOCAL CHANGELOG.md
+
+# Target to file a release PR, should be ran locally
+create-release-pr:
+    ARG --required GIT_TAG
+
+    LOCALLY
+    IF ! command -v git
+        RUN echo "Missing \`git\` command locally"; exit 1
+    END
+    IF ! command -v gh
+        RUN echo "Missing \`gh\` Github CLI command locally"; exit 1
+    END
+
+    # Create a new release branch
+    RUN git fetch origin && \
+        git checkout main && \
+        git pull && \
+        git checkout -b "release/$GIT_TAG" main && \
+        git checkout .
+
+    # Update the changelog
+    COPY +build-release-changelog/CHANGELOG.md .
+
+    # Push the changes, file a PR, and push a new tag
+    LOCALLY
+    RUN git add CHANGELOG.md && \
+        git commit -m "Release $GIT_TAG" && \
+        git push origin && \
+        PR_URL=$(gh pr create --draft --fill --base "main" --reviewer "fheinecke,camscale" --assignee "@me") && \
+        echo "PR: $PR_URL" && \
+        open --url "$PR_URL" && \
+        while [ "$(gh pr view "$PR_URL" --json 'state' -q '.state')" != "MERGED" ]; do \
+            echo "Waiting for PR to merge..."; \
+            sleep 60; \
+        done && \
+        echo "PR merged, cutting release" && \
+        git fetch origin && \
+        git checkout main && \
+        git pull && \
+        git tag "$GIT_TAG" && \
+        git push origin --tags && \
+        sleep 5 && \    # Naively wait 5s to allow time for the run to be queued
+        gh run list --workflow cd.yaml --event push --branch "$GIT_TAG" && \
+        open --url "$(gh run list --workflow cd.yaml --event push --branch $GIT_TAG --json 'url' --jq '. | first | .url')"
+
 # Cuts a new GH release and pushes file assets to it. Also pushes container images.
 release:
     ARG --required GIT_TAG  # This global var is redeclared here to ensure that it is set via `--required`
-    ARG CONTAINER_REGISTRY="ghcr.io/gravitational/gha-exporter/"
+    ARG CONTAINER_REGISTRY="ghcr.io/$REPO_NAME/"
+    ARG EARTHLY_PUSH
+    ARG NATIVEARCH
+
+    # Validate the changelog and get release notes
+    FROM +changelog-environment
+    WORKDIR /changelog
+    COPY CHANGELOG.md .
+    IF grep -qE "## \\[?${GIT_TAG#v}\\]? - " CHANGELOG.md
+        LET CHANGELOG_ENTRIES=$(chan show "$GIT_TAG")
+    END
+
+    IF $EARTHLY_PUSH && [ -z "$CHANGELOG_ENTRIES" ]
+        RUN echo "No changelog entry detected for $GIT_TAG, aborting"; exit 1
+    END
 
     # Create GH release and upload artifact(s)
-    FROM alpine:3.19.0
+    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
+
     # Unfortunately GH does not release a container image for their CLI, see https://github.com/cli/cli/issues/2027
     RUN apk add github-cli
     WORKDIR /release_artifacts
     COPY (+tarball/* --GOOS=linux --GOARCH=amd64) (+tarball/* --GOOS=linux --GOARCH=arm64) (+tarball/* --GOOS=darwin --GOARCH=arm64) .
-    COPY CHANGELOG.md /CHANGELOG.md
+
+    # Determine if the prerelease flag should be set
+    IF [ "${GIT_TAG#*-}" != "$GIT_TAG" ]
+        LET PRERELEASE_FLAG="--prerelease"
+    END
+
     # Run commands with "--push" set will only run when the "--push" arg is provided via CLI
-    RUN --push gh release create --draft --verify-tag --notes-file "/CHANGELOG.md" --prerelease "$GIT_TAG" "./*"
+    RUN --push --secret GH_TOKEN \
+        gh release create \
+        --draft --verify-tag --notes "$CHANGELOG_ENTRIES" $PRERELEASE_FLAG "$GIT_TAG" --repo "$REPO_NAME" \
+        ./*
 
     # Build container images and push them
     BUILD --platform=linux/amd64 --platform=linux/arm64 +container-image --CONTAINER_REGISTRY="$CONTAINER_REGISTRY"

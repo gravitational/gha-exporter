@@ -11,8 +11,8 @@ jobs:
   cut-release:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
+      contents: write # Required to create a release
+      packages: write # Required to push container images
     steps:
       - name: Validate the release tag
         env:
@@ -41,4 +41,5 @@ jobs:
       - name: Cut a new release for ${{ github.ref_name }}
         env:
           GIT_TAG: ${{ github.ref_name }}
-        run: earthly -ci --push +release --GIT_TAG="$GIT_TAG"
+          GH_TOKEN: ${{ github.token }}
+        run: earthly -ci --push --secret GH_TOKEN +release --GIT_TAG="$GIT_TAG"
