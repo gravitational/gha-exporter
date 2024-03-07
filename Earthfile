@@ -82,6 +82,7 @@ binary:
 
     # Do the actual build
     RUN go build -o "$BINARY_OUTPUT_PATH" -ldflags="$LINKER_FLAGS" .
+    RUN go env && uname -a
 
     # Process the outputs
     SAVE ARTIFACT "$BINARY_OUTPUT_PATH" AS LOCAL "outputs/$GOOS/$GOARCH/$BINARY_NAME"
