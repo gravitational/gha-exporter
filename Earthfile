@@ -283,7 +283,7 @@ release:
     # Run commands with "--push" set will only run when the "--push" arg is provided via CLI
     RUN --push --secret GH_TOKEN \
         gh release create \
-        --verify-tag --notes "$CHANGELOG_ENTRIES" $PRERELEASE_FLAG "$GIT_TAG" --repo "$REPO_NAME" \
+        --title "gha-exporter $GIT_TAG" --verify-tag --notes "$CHANGELOG_ENTRIES" $PRERELEASE_FLAG "$GIT_TAG" --repo "$REPO_NAME" \
         ./*
 
     # Build container images and push them
