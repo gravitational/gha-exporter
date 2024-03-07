@@ -33,5 +33,5 @@ jobs:
           GIT_TAG=$(git describe --tags --match "v[[:digit:]]*.[[:digit:]]*.[[:digit:]]" | sed 's/\(.*\)-\(.*\)-\(.*\)/\1-gen.\2+\3/')
           earthly --ci --output +all --GIT_TAG="$GIT_TAG"
           echo "Build outputs"
-          find outputs -type f
+          find outputs -type f -exec ls -lh "{}" \;
           docker image ls gha-exporter
