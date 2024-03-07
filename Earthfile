@@ -143,7 +143,7 @@ helm:
     SAVE ARTIFACT $ARTIFACT_NAME AS LOCAL "outputs/helm/$ARTIFACT_NAME"
     RUN --push --secret GH_TOKEN \
         echo "$GH_TOKEN" | helm registry login ghcr.io/gravitational --username gravitational --password-stdin && \
-        helm push "$ARTIFACT_NAME" "oci://ghcr.io/gravitational"
+        helm push "$ARTIFACT_NAME" "oci://ghcr.io/gravitational/charts"
 
 all:
     BUILD +binary
