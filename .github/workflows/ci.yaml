@@ -34,3 +34,4 @@ jobs:
           earthly --ci --output +all --GIT_TAG="$GIT_TAG"
           echo "Build outputs"
           find outputs -type f
+          docker image ls gha-exporter
