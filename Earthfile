@@ -54,6 +54,10 @@ go-environment:
     
     # Setup Go.
     FROM --platform="linux/$NATIVEARCH" "golang:$GO_VERSION"
+    # For some crazy reason this defaults to 1 on amd64 GHA runners, but 0
+    # on local and arm64 runners. Explicitly set it to prevent dynamic
+    # linking.
+    ENV CGO_ENABLED=0
     WORKDIR /go/src
     CACHE --sharing shared --id gomodcache $(go env GOMODCACHE)
 
@@ -82,7 +86,6 @@ binary:
 
     # Do the actual build
     RUN go build -o "$BINARY_OUTPUT_PATH" -ldflags="$LINKER_FLAGS" .
-    RUN go env && uname -a
 
     # Process the outputs
     SAVE ARTIFACT "$BINARY_OUTPUT_PATH" AS LOCAL "outputs/$GOOS/$GOARCH/$BINARY_NAME"
