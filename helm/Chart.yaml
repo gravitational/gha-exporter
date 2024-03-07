@@ -1,6 +1,6 @@
 ---
 apiVersion: v2
-name: gha-exporter-helm
+name: gha-exporter
 description: GitHub Actions metrics exporter for Prometheus
 # A chart can be either an 'application' or a 'library' chart.
 #
