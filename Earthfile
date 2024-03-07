@@ -128,10 +128,28 @@ tarball:
     RUN tar -czvf "$TARBALL_NAME" *
     SAVE ARTIFACT $TARBALL_NAME AS LOCAL "outputs/$GOOS/$GOARCH/$TARBALL_NAME"
 
+helm:
+    ARG CONTAINER_REGISTRY
+
+    FROM alpine/helm:3.14.2
+    WORKDIR /helm
+    COPY ./helm .
+
+    IF [ -n "$GIT_TAG" ]
+        LET VERSION_FLAGS="--version ${GIT_TAG#v} --app-version ${GIT_TAG#v}"
+    END
+
+    RUN helm package . $VERSION_FLAGS
+    LET ARTIFACT_NAME=$(find . -name '*.tgz' -exec basename {} \\; | head -n 1)
+
+    SAVE ARTIFACT $ARTIFACT_NAME AS LOCAL "outputs/helm/$ARTIFACT_NAME"
+    RUN --push helm push "$ARTIFACT_NAME" "oci://ghcr.io/gravitational"
+
 all:
     BUILD +binary
     BUILD +tarball
     BUILD +container-image
+    BUILD +helm
 
 # Runs the project's Go tests.
 test:
@@ -292,3 +310,6 @@ release:
 
     # Build container images and push them
     BUILD --platform=linux/amd64 --platform=linux/arm64 +container-image --CONTAINER_REGISTRY="$CONTAINER_REGISTRY"
+
+    # Build the helm chart and push it
+    BUILD +helm

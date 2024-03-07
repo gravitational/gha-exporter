@@ -1,0 +1,23 @@
+{{- if .Values.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "gha-exporter.fullname" . }}
+  labels:
+    {{- include "gha-exporter.labels" . | nindent 4 }}
+spec:
+  jobLabel: app.kubernetes.io/name
+  selector:
+    matchLabels:
+      {{- include "gha-exporter.selectorLabels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace | quote }}
+  endpoints:
+    - honorLabels: true
+      path: /metrics
+      port: metrics
+      scheme: http
+      scrapeTimeout: 30s
+{{- end }}
