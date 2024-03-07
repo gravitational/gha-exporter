@@ -311,7 +311,7 @@ release:
         ./*
 
     # Build container images and push them
-    BUILD --platform=linux/amd64 --platform=linux/arm64 +container-image --pass-args
+    BUILD --platform=linux/amd64 --platform=linux/arm64  --pass-args +container-image
 
     # Build the helm chart and push it
-    BUILD +helm --pass-args
+    BUILD  --pass-args +helm
