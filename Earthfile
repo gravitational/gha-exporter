@@ -143,7 +143,7 @@ helm:
     LET ARTIFACT_NAME=$(find . -name '*.tgz' -exec basename {} \\; | head -n 1)
 
     SAVE ARTIFACT $ARTIFACT_NAME AS LOCAL "outputs/helm/$ARTIFACT_NAME"
-    RUN --push helm push "$ARTIFACT_NAME" "oci://ghcr.io/gravitational"
+    RUN --push helm push "$ARTIFACT_NAME" "oci://ghcr.io/$REPO_NAME/charts"
 
 all:
     BUILD +binary
