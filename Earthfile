@@ -129,8 +129,6 @@ tarball:
     SAVE ARTIFACT $TARBALL_NAME AS LOCAL "outputs/$GOOS/$GOARCH/$TARBALL_NAME"
 
 helm:
-    ARG CONTAINER_REGISTRY
-
     FROM alpine/helm:3.14.2
     WORKDIR /helm
     COPY ./helm .
@@ -143,7 +141,9 @@ helm:
     LET ARTIFACT_NAME=$(find . -name '*.tgz' -exec basename {} \\; | head -n 1)
 
     SAVE ARTIFACT $ARTIFACT_NAME AS LOCAL "outputs/helm/$ARTIFACT_NAME"
-    RUN --push helm push "$ARTIFACT_NAME" "oci://ghcr.io/gravitational"
+    RUN --push --secret GH_TOKEN \
+        echo "$GH_TOKEN" | helm registry login ghcr.io/gravitational --username gravitational --password-stdin && \
+        helm push "$ARTIFACT_NAME" "oci://ghcr.io/gravitational"
 
 all:
     BUILD +binary
