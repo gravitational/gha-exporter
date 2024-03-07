@@ -97,7 +97,7 @@ container-image:
     # Build args
     ARG TARGETARCH
     ARG NATIVEARCH
-    ARG CONTAINER_REGISTRY
+    ARG OCI_REGISTRY
 
     # Setup for build
     # `IF` statements essentially run as shell `if` statements, so a build context must be declared
@@ -115,7 +115,7 @@ container-image:
     ENTRYPOINT [ "/gha-exporter" ]
 
     # Process the outputs
-    SAVE IMAGE --push "$CONTAINER_REGISTRY$IMAGE_NAME:$IMAGE_TAG"
+    SAVE IMAGE --push "$OCI_REGISTRY$IMAGE_NAME:$IMAGE_TAG"
 
 # Same as `binary`, but wraps the output in a tarball.
 tarball:
@@ -129,6 +129,8 @@ tarball:
     SAVE ARTIFACT $TARBALL_NAME AS LOCAL "outputs/$GOOS/$GOARCH/$TARBALL_NAME"
 
 helm:
+    ARG OCI_REGISTRY
+
     FROM alpine/helm:3.14.2
     WORKDIR /helm
     COPY ./helm .
@@ -142,8 +144,8 @@ helm:
 
     SAVE ARTIFACT $ARTIFACT_NAME AS LOCAL "outputs/helm/$ARTIFACT_NAME"
     RUN --push --secret GH_TOKEN \
-        echo "$GH_TOKEN" | helm registry login ghcr.io/gravitational --username gravitational --password-stdin && \
-        helm push "$ARTIFACT_NAME" "oci://ghcr.io/gravitational/charts"
+        echo "$GH_TOKEN" | helm registry login "$$OCI_REGISTRY" --username gravitational --password-stdin && \
+        helm push "$ARTIFACT_NAME" "oci://$OCI_REGISTRY/charts"
 
 all:
     BUILD +binary
@@ -273,7 +275,7 @@ create-release-pr:
 # Cuts a new GH release and pushes file assets to it. Also pushes container images.
 release:
     ARG --required GIT_TAG  # This global var is redeclared here to ensure that it is set via `--required`
-    ARG CONTAINER_REGISTRY="ghcr.io/$REPO_NAME/"
+    ARG OCI_REGISTRY="ghcr.io/gravitational/"
     ARG EARTHLY_PUSH
     ARG NATIVEARCH
 
@@ -309,7 +311,7 @@ release:
         ./*
 
     # Build container images and push them
-    BUILD --platform=linux/amd64 --platform=linux/arm64 +container-image --CONTAINER_REGISTRY="$CONTAINER_REGISTRY"
+    BUILD --platform=linux/amd64 --platform=linux/arm64 +container-image --pass-args
 
     # Build the helm chart and push it
-    BUILD +helm
+    BUILD +helm --pass-args
