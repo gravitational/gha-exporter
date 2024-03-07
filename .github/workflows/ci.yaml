@@ -24,6 +24,13 @@ jobs:
           # renovate: earthly-version
           version: v0.8.4
       - name: Lint Go code
-        run: earthly -ci +lint --OUTPUT_FORMAT=github-actions
+        run: earthly --ci +lint --OUTPUT_FORMAT=github-actions
       - name: Run Go tests
-        run: earthly -ci +test --OUTPUT_FORMAT=github-actions
+        run: earthly --ci +test --OUTPUT_FORMAT=github-actions
+      - name: Run a build
+        run: |
+          # Generate a fake git tag
+          GIT_TAG=$(git describe --tags --match "v[[:digit:]]*.[[:digit:]]*.[[:digit:]]" | sed 's/\(.*\)-\(.*\)-\(.*\)/\1-gen.\2+\3/')
+          earthly --ci --output +all --GIT_TAG="$GIT_TAG"
+          echo "Build outputs"
+          find outputs -type f
