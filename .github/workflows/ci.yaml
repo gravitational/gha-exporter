@@ -32,6 +32,7 @@ jobs:
           # Generate a fake git tag
           GIT_TAG=$(git describe --tags --match "v[[:digit:]]*.[[:digit:]]*.[[:digit:]]" | sed 's/\(.*\)-\(.*\)-\(.*\)/\1-gen.\2+\3/')
           earthly --ci --output +all --GIT_TAG="$GIT_TAG"
-          echo "Build outputs"
+          echo "Build outputs:"
           find outputs -type f -exec ls -lh "{}" \;
+          find outputs -type f ! -name '*.t*' -exec file "{}" \;
           docker image ls gha-exporter
