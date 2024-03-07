@@ -231,7 +231,7 @@ create-release-pr:
     RUN git add CHANGELOG.md && \
         git commit -m "Release $GIT_TAG" && \
         git push origin && \
-        PR_URL=$(gh pr create --draft --fill --base "main" --reviewer "fheinecke,camscale" --assignee "@me") && \
+        PR_URL=$(gh pr create --fill --base "main" --reviewer "fheinecke,camscale" --assignee "@me") && \
         echo "PR: $PR_URL" && \
         open --url "$PR_URL" && \
         while [ "$(gh pr view "$PR_URL" --json 'state' -q '.state')" != "MERGED" ]; do \
@@ -283,7 +283,7 @@ release:
     # Run commands with "--push" set will only run when the "--push" arg is provided via CLI
     RUN --push --secret GH_TOKEN \
         gh release create \
-        --draft --verify-tag --notes "$CHANGELOG_ENTRIES" $PRERELEASE_FLAG "$GIT_TAG" --repo "$REPO_NAME" \
+        --verify-tag --notes "$CHANGELOG_ENTRIES" $PRERELEASE_FLAG "$GIT_TAG" --repo "$REPO_NAME" \
         ./*
 
     # Build container images and push them
