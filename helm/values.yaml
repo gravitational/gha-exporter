@@ -4,7 +4,7 @@
 # Declare variables to be passed into your templates.
 
 image:
-  repository: ghcr.io/gravitational/gha-exporter/gha-exporter
+  repository: ghcr.io/gravitational/gha-exporter
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
