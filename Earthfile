@@ -109,7 +109,7 @@ container-image:
     END
 
     # Do the actual build
-    FROM --platform="linux/$TARGETARCH" scratch
+    FROM --platform="linux/$TARGETARCH" gcr.io/distroless/static-debian12
     COPY (+binary/* --GOOS="linux" --GOARCH="$TARGETARCH") /
     # Unfortunately arg expansion is not supported here, see https://github.com/earthly/earthly/issues/1846
     ENTRYPOINT [ "/gha-exporter" ]
