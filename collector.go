@@ -248,7 +248,8 @@ func countJobs(run *github.WorkflowRun, jobs []*github.WorkflowJob) {
 }
 
 func makeRef(run *github.WorkflowRun) string {
-	if strings.HasPrefix(run.GetEvent(), "pull_request") {
+	eventName := run.GetEvent()
+	if strings.HasPrefix(eventName, "pull_request") {
 		// Attempt to tie the workflow to a PR
 		headSha := run.GetHeadSHA()
 		headBranch := run.GetHeadBranch()
@@ -259,20 +260,25 @@ func makeRef(run *github.WorkflowRun) string {
 
 		for _, pr := range run.PullRequests {
 			prBaseBranch := pr.GetBase()
-			if prBaseBranch == nil {
-				continue
-			}
 
-			if prBaseBranch.GetSHA() == headSha {
-				return headSha
-			}
-
-			if prBaseBranch.GetRef() == headBranch {
+			if prBaseBranch.GetSHA() == headSha ||
+				prBaseBranch.GetRef() == headBranch {
 				return headBranch
 			}
 		}
 
-		return "error-no-matching-pr"
+		return headBranch
+	}
+
+	if strings.HasPrefix(eventName, "merge_group") {
+		headBranch := run.GetHeadBranch()
+		if headBranch == "" {
+			return "error-head-branch-is-nil"
+		}
+
+		mergeBranch := strings.TrimPrefix(headBranch, "gh-readonly-queue/")
+		mergeBranch = strings.SplitN(mergeBranch, "/pr-", 2)[0]
+		return mergeBranch
 	}
 
 	headBranch := run.GetHeadBranch()
