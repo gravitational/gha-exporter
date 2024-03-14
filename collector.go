@@ -20,37 +20,37 @@ var (
 		prometheus.CounterOpts{
 			Name: "gha_workflow_run_time_seconds",
 		},
-		[]string{"repo", "ref", "workflow"},
+		[]string{"repo", "ref", "event_type", "workflow"},
 	)
 	jobRunTimeVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "gha_job_run_time_seconds",
 		},
-		[]string{"repo", "ref", "workflow", "job"},
+		[]string{"repo", "ref", "event_type", "workflow", "job"},
 	)
 	stepRunTimeVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "gha_step_run_time_seconds",
 		},
-		[]string{"repo", "ref", "workflow", "job", "step"},
+		[]string{"repo", "ref", "event_type", "workflow", "job", "step"},
 	)
 	workflowRunCountVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "gha_workflow_run_count",
 		},
-		[]string{"repo", "ref", "workflow", "conclusion"},
+		[]string{"repo", "ref", "event_type", "workflow", "conclusion"},
 	)
 	jobRunCountVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "gha_job_run_count",
 		},
-		[]string{"repo", "ref", "workflow", "job", "conclusion"},
+		[]string{"repo", "ref", "event_type", "workflow", "job", "conclusion"},
 	)
 	stepRunCountVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "gha_step_run_count",
 		},
-		[]string{"repo", "ref", "workflow", "job", "step", "conclusion"},
+		[]string{"repo", "ref", "event_type", "workflow", "job", "step", "conclusion"},
 	)
 )
 
@@ -203,13 +203,14 @@ func countJobs(run *github.WorkflowRun, jobs []*github.WorkflowJob) {
 	workflowName = strings.TrimSuffix(workflowName, path.Ext(workflowName))
 	repo := run.GetRepository().GetName()
 	ref := makeRef(run)
+	eventType := run.GetEvent()
 
 	var workflowRunTime time.Duration
 	for _, job := range jobs {
 		var jobRunTime time.Duration
 		for _, step := range job.Steps {
 			stepRunCountVec.WithLabelValues(
-				repo, ref, workflowName, job.GetName(), step.GetName(), step.GetConclusion(),
+				repo, ref, eventType, workflowName, job.GetName(), step.GetName(), step.GetConclusion(),
 			).Add(1)
 
 			if step.GetConclusion() != "success" {
@@ -220,34 +221,66 @@ func countJobs(run *github.WorkflowRun, jobs []*github.WorkflowJob) {
 			}
 			stepRunTime := step.CompletedAt.Time.Sub(step.StartedAt.Time)
 			stepRunTimeVec.WithLabelValues(
-				repo, ref, workflowName, job.GetName(), step.GetName(),
+				repo, ref, eventType, workflowName, job.GetName(), step.GetName(),
 			).Add(stepRunTime.Seconds())
 			jobRunTime += stepRunTime
 		}
 		jobRunCountVec.WithLabelValues(
-			repo, ref, workflowName, job.GetName(), job.GetConclusion(),
+			repo, ref, eventType, workflowName, job.GetName(), job.GetConclusion(),
 		).Add(1)
 		if job.GetConclusion() != "success" {
 			continue
 		}
 		jobRunTimeVec.WithLabelValues(
-			repo, ref, workflowName, job.GetName(),
+			repo, ref, eventType, workflowName, job.GetName(),
 		).Add(jobRunTime.Seconds())
 
 		workflowRunTime += jobRunTime
 	}
 
-	workflowRunCountVec.WithLabelValues(repo, ref, workflowName, run.GetConclusion()).Add(1)
+	workflowRunCountVec.WithLabelValues(repo, ref, eventType, workflowName, run.GetConclusion()).Add(1)
 
 	if run.GetConclusion() != "success" {
 		return
 	}
 
-	workflowRunTimeVec.WithLabelValues(repo, ref, workflowName).Add(workflowRunTime.Seconds())
+	workflowRunTimeVec.WithLabelValues(repo, ref, eventType, workflowName).Add(workflowRunTime.Seconds())
 }
 
 func makeRef(run *github.WorkflowRun) string {
-	return "todo"
+	if strings.HasPrefix(run.GetEvent(), "pull_request") {
+		// Attempt to tie the workflow to a PR
+		headSha := run.GetHeadSHA()
+		headBranch := run.GetHeadBranch()
+
+		if headSha == "" && headBranch == "" {
+			return "error-missing-head-ref"
+		}
+
+		for _, pr := range run.PullRequests {
+			prBaseBranch := pr.GetBase()
+			if prBaseBranch == nil {
+				continue
+			}
+
+			if prBaseBranch.GetSHA() == headSha {
+				return headSha
+			}
+
+			if prBaseBranch.GetRef() == headBranch {
+				return headBranch
+			}
+		}
+
+		return "error-no-matching-pr"
+	}
+
+	headBranch := run.GetHeadBranch()
+	if headBranch == "" {
+		return "error-head-branch-is-nil"
+	}
+
+	return headBranch
 }
 
 func newGHClient(owner string, appID int64, appKey []byte) (*github.Client, error) {
