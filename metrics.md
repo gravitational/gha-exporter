@@ -6,11 +6,11 @@ A `counter` of the run time of steps in a job in a workflow.
 
 ### Labels
 * repo: github `owner/repo` containing the workflow
-* ref: literal branch name if it matches a pattern e.g.
-  * `(master|branch/v[0-9]+)` -> $1
-  * `refs/pulls/.*` -> `pr`
-  * something -> `merge_queue`
-  * `.*` -> `other`
+* ref: depending on event type:
+  * If a currently open `pull_request` or related events, pull request target branch
+  * If a `merge_group` event, the merge group target branch
+  * All others (i.e. push event), the head branch
+* event: the name of the triggering event (such as `push` or `pull_request`)
 * workflow: workflow path without leading `.github/workflows` and trailing `.ya?ml`
 * job: job name
 * step: step name
@@ -31,10 +31,6 @@ and the individual release branches split out, and the rest is either `pr` for
 workflows that run on PRs, in the merge_queue and anything else (other). We may
 need to do some munging for tag builds to extract the major version for the
 branch.
-
-Thoughts: The ref translation could be done in a very similar way to prometheus
-label rewriting - have the github step/job/workflow run info as context for a
-set of fields and match them against a regex to extract parts of it.
 
 
 ## `gha_job_run_time_seconds`
