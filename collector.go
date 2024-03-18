@@ -259,11 +259,11 @@ func makeRef(run *github.WorkflowRun) string {
 		}
 
 		for _, pr := range run.PullRequests {
-			prBaseBranch := pr.GetBase()
+			prHeadBranch := pr.GetHead()
 
-			if prBaseBranch.GetSHA() == headSha ||
-				prBaseBranch.GetRef() == headBranch {
-				return headBranch
+			if prHeadBranch.GetSHA() == headSha ||
+				prHeadBranch.GetRef() == headBranch {
+				return pr.GetBase().GetRef()
 			}
 		}
 
