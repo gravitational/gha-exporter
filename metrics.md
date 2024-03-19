@@ -1,6 +1,6 @@
 # Metrics for GHA exporter
 
-## `gha_step_run_time_seconds`
+## `gha_step_runner_seconds`
 
 A `counter` of the run time of steps in a job in a workflow.
 
@@ -33,27 +33,27 @@ need to do some munging for tag builds to extract the major version for the
 branch.
 
 
-## `gha_job_run_time_seconds`
+## `gha_job_runner_seconds`
 
 A `counter` of the run time of jobs in a workflow. This is a sum of the
-`gha_step_run_time_seconds` for a particular job instance (job ID in GHA).
+`gha_step_runner_seconds` for a particular job instance (job ID in GHA).
 
 ### Labels
 
-Same as `gha_step_run_time_seconds` but without the `step` label.
+Same as `gha_step_runner_seconds` but without the `step` label.
 
 
-## `gha_workflow_run_runner_seconds`
+## `gha_workflow_runner_seconds`
 
 A `counter` of the runner run time of a workflow. This is a sum of the
-`gha_job_run_time_seconds` for a particular job instance (job ID in GHA).
+`gha_job_runner_seconds` for a particular job instance (job ID in GHA).
 
 ### Labels
 
-Same as `gha_job_run_time_seconds` but without the `job` label.
+Same as `gha_job_runner_seconds` but without the `job` label.
 
 
-## `gha_workflow_run_elapsed_seconds`
+## `gha_workflow_elapsed_seconds`
 
 A `counter` of the elapsed run time of a workflow. This is a "wall clock
 time", or how much time passed between when a run was created and when it
@@ -61,7 +61,7 @@ ended.
 
 ### Labels
 
-Same as `gha_job_run_time_seconds` but without the `job` label.
+Same as `gha_job_runner_seconds` but without the `job` label.
 
 
 ## `gha_step_run_count`
@@ -70,7 +70,7 @@ A `counter` of the number of runs of a step by conclusion.
 
 ### Labels
 
-Same as `gha_step_run_time_seconds` with the addition of:
+Same as `gha_step_runner_seconds` with the addition of:
 * conclusion: The github conclusion of the step: `success`, `skipped`,
   `cancelled`, `failure`.
 
