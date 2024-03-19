@@ -206,13 +206,6 @@ func (c *Collector) collectJobs(ctx context.Context, repo string, run *github.Wo
 }
 
 func countJobs(run *github.WorkflowRun, jobs []*github.WorkflowJob) {
-	// The tool doesn't currently account for more than one run attempt.
-	// This brings a multitude of issues that are near-impossible to
-	// account for due to GH's API design.
-	if run.GetRunAttempt() > 1 {
-		return
-	}
-
 	workflowName := path.Base(run.GetPath())
 	workflowName = strings.TrimSuffix(workflowName, path.Ext(workflowName))
 	repo := run.GetRepository().GetName()
@@ -250,6 +243,13 @@ func countJobs(run *github.WorkflowRun, jobs []*github.WorkflowJob) {
 		).Add(jobRunTime.Seconds())
 
 		workflowRunTime += jobRunTime
+	}
+
+	// The tool doesn't currently account for more than one run attempt.
+	// This brings a multitude of issues that are near-impossible to
+	// account for due to GH's API design.
+	if run.GetRunAttempt() > 1 {
+		return
 	}
 
 	workflowRunCountVec.WithLabelValues(repo, ref, eventType, workflowName, run.GetConclusion()).Add(1)
