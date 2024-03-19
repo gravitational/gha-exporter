@@ -43,10 +43,21 @@ A `counter` of the run time of jobs in a workflow. This is a sum of the
 Same as `gha_step_run_time_seconds` but without the `step` label.
 
 
-## `gha_workflow_run_time_seconds`
+## `gha_workflow_run_runner_seconds`
 
-A `counter` of the run time of a workflow. This is a sum of the
+A `counter` of the runner run time of a workflow. This is a sum of the
 `gha_job_run_time_seconds` for a particular job instance (job ID in GHA).
+
+### Labels
+
+Same as `gha_job_run_time_seconds` but without the `job` label.
+
+
+## `gha_workflow_run_elapsed_seconds`
+
+A `counter` of the elapsed run time of a workflow. This is a "wall clock
+time", or how much time passed between when a run was created and when it
+ended.
 
 ### Labels
 
