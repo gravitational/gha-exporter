@@ -16,9 +16,15 @@ import (
 )
 
 var (
-	workflowRunTimeVec = prometheus.NewCounterVec(
+	workflowRunRunnerTimeVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gha_workflow_run_time_seconds",
+			Name: "gha_workflow_run_runner_seconds",
+		},
+		[]string{"repo", "ref", "event_type", "workflow"},
+	)
+	workflowRunElapsedTimeVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "gha_workflow_run_elapsed_seconds",
 		},
 		[]string{"repo", "ref", "event_type", "workflow"},
 	)
@@ -67,7 +73,8 @@ type Collector struct {
 }
 
 func NewCollector(cfg *CLI) *Collector {
-	prometheus.MustRegister(workflowRunTimeVec)
+	prometheus.MustRegister(workflowRunRunnerTimeVec)
+	prometheus.MustRegister(workflowRunElapsedTimeVec)
 	prometheus.MustRegister(jobRunTimeVec)
 	prometheus.MustRegister(stepRunTimeVec)
 	prometheus.MustRegister(workflowRunCountVec)
@@ -199,6 +206,13 @@ func (c *Collector) collectJobs(ctx context.Context, repo string, run *github.Wo
 }
 
 func countJobs(run *github.WorkflowRun, jobs []*github.WorkflowJob) {
+	// The tool doesn't currently account for more than one run attempt.
+	// This brings a multitude of issues that are near-impossible to
+	// account for due to GH's API design.
+	if run.GetRunAttempt() > 1 {
+		return
+	}
+
 	workflowName := path.Base(run.GetPath())
 	workflowName = strings.TrimSuffix(workflowName, path.Ext(workflowName))
 	repo := run.GetRepository().GetName()
@@ -244,7 +258,8 @@ func countJobs(run *github.WorkflowRun, jobs []*github.WorkflowJob) {
 		return
 	}
 
-	workflowRunTimeVec.WithLabelValues(repo, ref, eventType, workflowName).Add(workflowRunTime.Seconds())
+	workflowRunRunnerTimeVec.WithLabelValues(repo, ref, eventType, workflowName).Add(workflowRunTime.Seconds())
+	workflowRunElapsedTimeVec.WithLabelValues(repo, ref, eventType, workflowName).Add(run.GetUpdatedAt().Sub(run.GetCreatedAt().Time).Seconds())
 }
 
 func makeRef(run *github.WorkflowRun) string {
