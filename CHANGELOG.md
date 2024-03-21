@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Added workflow Grafana dashboard
+- Added redirect from `/` to metrics endpoint at `/metrics`
 
 ## [0.0.10] - 2024-03-19
 ### Added
