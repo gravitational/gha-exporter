@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.0.11] - 2024-03-21
 ### Added
 - Added workflow Grafana dashboard
 - Added redirect from `/` to metrics endpoint at `/metrics`
@@ -51,7 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release. GHA exporter provides Prometheus metrics for Github Action runs.
 
-[Unreleased]: https://github.com/gravitational/gha-exporter/compare/v0.0.10...HEAD
+[Unreleased]: https://github.com/gravitational/gha-exporter/compare/v0.0.11...HEAD
+[0.0.11]: https://github.com/gravitational/gha-exporter/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/gravitational/gha-exporter/compare/v0.0.9...v0.0.10
 [0.0.9]: https://github.com/gravitational/gha-exporter/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/gravitational/gha-exporter/compare/v0.0.7...v0.0.8
