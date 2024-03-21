@@ -31,7 +31,7 @@ exporter:
 dashboards:
   enabled: false
   additionalLabels:
-    grafana_dashboard: true # Default label for Grafana Helm chart dashboard sidecar
+    grafana_dashboard: "true" # Default label for Grafana Helm chart dashboard sidecar
 
 podAnnotations: {}
 podLabels: {}
