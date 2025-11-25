@@ -133,8 +133,6 @@ test:
 
 lint:
     ARG NATIVEARCH
-    # For options, see https://golangci-lint.run/usage/configuration/#command-line-options
-    ARG OUTPUT_FORMAT="colored-line-number"
 
     # Setup the linter and configure the environment
     FROM +go-environment
@@ -143,10 +141,10 @@ lint:
     CACHE $GOLANGCI_LINT_CACHE
     CACHE --sharing shared --id gomodcache $(go env GOMODCACHE)
     CACHE --sharing shared --id gocache $(go env GOCACHE)
-    RUN GOOS="linux" GOARCH="$NATIVEARCH" go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
+    RUN GOOS="linux" GOARCH="$NATIVEARCH" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2
 
     # Run the linter
-    RUN golangci-lint run ./... --out-format "$OUTPUT_FORMAT"
+    RUN golangci-lint run ./...
 
 # Removes local file and container image artifacts.
 clean:

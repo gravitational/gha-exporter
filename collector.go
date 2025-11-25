@@ -226,7 +226,7 @@ func countJobs(run *github.WorkflowRun, jobs []*github.WorkflowJob) {
 			if step.StartedAt == nil || step.CompletedAt == nil {
 				continue
 			}
-			stepRunTime := step.CompletedAt.Time.Sub(step.StartedAt.Time)
+			stepRunTime := step.CompletedAt.Sub(step.StartedAt.Time)
 			stepRunnerSecondsVec.WithLabelValues(
 				repo, ref, eventType, workflowName, job.GetName(), step.GetName(),
 			).Add(stepRunTime.Seconds())
