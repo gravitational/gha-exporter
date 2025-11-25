@@ -15,7 +15,7 @@ go-environment:
     # This keeps the Go version set in a single place
     # A container is used to pin the `sed` dependency. `LOCALLY` could be used instead, but is
     # disallowed by the `--strict` Earthly flag which is used to help enfore reproducability.
-    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
+    FROM --platform="linux/$NATIVEARCH" alpine:3.22.2
     WORKDIR /gomod
     COPY go.mod .
     LET GO_VERSION=$(sed -rn 's/^go (.*)$/\1/p' go.mod)
@@ -66,14 +66,14 @@ container-image:
     # Setup for build
     # `IF` statements essentially run as shell `if` statements, so a build context must be declared
     # for them.
-    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
+    FROM --platform="linux/$NATIVEARCH" alpine:3.22.2
     LET IMAGE_TAG="latest"
     IF [ -n "$GIT_TAG" ]
         SET IMAGE_TAG="${GIT_TAG#v}"
     END
 
     # Do the actual build
-    FROM --platform="linux/$TARGETARCH" gcr.io/distroless/static-debian12
+    FROM --platform="linux/$TARGETARCH" gcr.io/distroless/static-debian13
     COPY (+binary/* --GOOS="linux" --GOARCH="$TARGETARCH") /
     # Unfortunately arg expansion is not supported here, see https://github.com/earthly/earthly/issues/1846
     ENTRYPOINT [ "/gha-exporter" ]
@@ -86,7 +86,7 @@ tarball:
     ARG NATIVEARCH
     ARG TARBALL_NAME="$BINARY_NAME-$GOOS-$GOARCH.tar.gz"
 
-    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
+    FROM --platform="linux/$NATIVEARCH" alpine:3.22.2
     WORKDIR /tarball
     COPY +binary/* .
     RUN tar -czvf "$TARBALL_NAME" *
@@ -95,7 +95,7 @@ tarball:
 helm:
     ARG OCI_REGISTRY
 
-    FROM alpine/helm:3.14.2
+    FROM alpine/helm:4.0.0
     WORKDIR /helm
     COPY ./helm .
 
@@ -162,7 +162,7 @@ clean:
 
 changelog-environment:
     ARG NATIVEARCH
-    FROM --platform="linux/$NATIVEARCH" node:21.6-alpine3.18
+    FROM --platform="linux/$NATIVEARCH" node:25.2.1-alpine3.21
     WORKDIR /changelog
     CACHE --sharing shared --id npm $(echo "$HOME/.npm")
     RUN npm install --global '@geut/chan@3.2.9'
@@ -256,7 +256,7 @@ release:
     END
 
     # Create GH release and upload artifact(s)
-    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
+    FROM --platform="linux/$NATIVEARCH" alpine:3.22.2
 
     # Unfortunately GH does not release a container image for their CLI, see https://github.com/cli/cli/issues/2027
     RUN apk add github-cli
