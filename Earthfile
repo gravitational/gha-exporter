@@ -128,7 +128,7 @@ test:
     WORKDIR /go/src
     CACHE --sharing shared --id gomodcache $(go env GOMODCACHE)
     CACHE --sharing shared --id gocache $(go env GOCACHE)
-    RUN GOOS="linux" GOARCH="$NATIVEARCH" go install gotest.tools/gotestsum@latest
+    RUN GOOS="linux" GOARCH="$NATIVEARCH" go install gotest.tools/gotestsum@v1.13.0
     RUN gotestsum --format "$OUTPUT_FORMAT" ./... -- -shuffle on -timeout 2m -race
 
 lint:
