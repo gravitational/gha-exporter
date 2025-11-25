@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.0.14] - 2025-11-25
 ### Fixed
 - Updated out of date dependencies
 
@@ -63,7 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release. GHA exporter provides Prometheus metrics for Github Action runs.
 
-[Unreleased]: https://github.com/gravitational/gha-exporter/compare/v0.0.13...HEAD
+[Unreleased]: https://github.com/gravitational/gha-exporter/compare/v0.0.14...HEAD
+[0.0.14]: https://github.com/gravitational/gha-exporter/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/gravitational/gha-exporter/compare/v0.0.12...v0.0.13
 [0.0.12]: https://github.com/gravitational/gha-exporter/compare/v0.0.11...v0.0.12
 [0.0.11]: https://github.com/gravitational/gha-exporter/compare/v0.0.10...v0.0.11
