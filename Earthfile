@@ -108,7 +108,7 @@ helm:
 
     SAVE ARTIFACT $ARTIFACT_NAME AS LOCAL "outputs/helm/$ARTIFACT_NAME"
     RUN --push --secret GH_TOKEN \
-        echo "$GH_TOKEN" | helm registry login "$OCI_REGISTRY" --username gravitational --password-stdin && \
+        echo "$GH_TOKEN" | helm registry login "${OCI_REGISTRY%%/*}" --username gravitational --password-stdin && \
         helm push "$ARTIFACT_NAME" "oci://$OCI_REGISTRY/charts"
 
 all:
