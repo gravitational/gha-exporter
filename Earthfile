@@ -9,38 +9,6 @@ ARG --global USERARCH
 ARG --global GOOS=$USEROS
 ARG --global GOARCH=$USERARCH
 
-# TODO remove this, this is a temp workaround
-download-go-github:
-    ARG NATIVEARCH
-    FROM --platform="linux/$NATIVEARCH" alpine/git:2.43.0
-    WORKDIR /src
-    RUN git clone --single-branch --depth 1 --branch v60.0.0 https://github.com/google/go-github.git .
-    SAVE ARTIFACT go.mod
-    SAVE ARTIFACT . AS LOCAL go-github
-
-# TODO remove this, this is a temp workaround
-build-go-github-patch:
-    ARG NATIVEARCH
-    # Pull the Go version from the project
-    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
-    WORKDIR /gomod
-    COPY +download-go-github/go.mod .
-    LET GO_VERSION=$(sed -rn 's/^go (.*)$/\1/p' go.mod)
-
-    FROM --platform "linux/$NATIVEARCH" "golang:$GO_VERSION"
-    WORKDIR /go/src/
-    COPY +download-go-github/* .
-
-    # Download the project's requirements
-    CACHE --sharing shared --id gomodcache $(go env GOMODCACHE)
-    RUN go mod download -x
-
-    # Load and apply the patch
-    CACHE --sharing shared --id gocache $(go env GOCACHE)
-    COPY ./hack-todo-remove/go-github.patch go-github.patch
-    RUN git apply go-github.patch && GOOS=linux GOARCH=$NATIVEARCH go generate ./...
-    SAVE ARTIFACT . AS LOCAL go-github
-
 # This target is used to setup a common Go environment used for both builds and tests.
 go-environment:
     ARG NATIVEARCH
@@ -64,10 +32,6 @@ go-environment:
     # Load the source and download modules
     COPY . .
     RUN go mod download -x
-
-    # TODO remove this, this is a temp workaround
-    COPY +build-go-github-patch/* ./go-github
-    RUN go mod edit -replace github.com/google/go-github/v60=./go-github
 
 # Produces a single executable binary file for the target platform.
 binary:
