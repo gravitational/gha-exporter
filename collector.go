@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
-	"github.com/google/go-github/v60/github"
+	"github.com/google/go-github/v79/github"
 	"github.com/gravitational/trace"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/prometheus/client_golang/prometheus"
@@ -226,7 +226,7 @@ func countJobs(run *github.WorkflowRun, jobs []*github.WorkflowJob) {
 			if step.StartedAt == nil || step.CompletedAt == nil {
 				continue
 			}
-			stepRunTime := step.CompletedAt.Time.Sub(step.StartedAt.Time)
+			stepRunTime := step.CompletedAt.Sub(step.StartedAt.Time)
 			stepRunnerSecondsVec.WithLabelValues(
 				repo, ref, eventType, workflowName, job.GetName(), step.GetName(),
 			).Add(stepRunTime.Seconds())

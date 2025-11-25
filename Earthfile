@@ -9,45 +9,13 @@ ARG --global USERARCH
 ARG --global GOOS=$USEROS
 ARG --global GOARCH=$USERARCH
 
-# TODO remove this, this is a temp workaround
-download-go-github:
-    ARG NATIVEARCH
-    FROM --platform="linux/$NATIVEARCH" alpine/git:2.43.0
-    WORKDIR /src
-    RUN git clone --single-branch --depth 1 --branch v60.0.0 https://github.com/google/go-github.git .
-    SAVE ARTIFACT go.mod
-    SAVE ARTIFACT . AS LOCAL go-github
-
-# TODO remove this, this is a temp workaround
-build-go-github-patch:
-    ARG NATIVEARCH
-    # Pull the Go version from the project
-    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
-    WORKDIR /gomod
-    COPY +download-go-github/go.mod .
-    LET GO_VERSION=$(sed -rn 's/^go (.*)$/\1/p' go.mod)
-
-    FROM --platform "linux/$NATIVEARCH" "golang:$GO_VERSION"
-    WORKDIR /go/src/
-    COPY +download-go-github/* .
-
-    # Download the project's requirements
-    CACHE --sharing shared --id gomodcache $(go env GOMODCACHE)
-    RUN go mod download -x
-
-    # Load and apply the patch
-    CACHE --sharing shared --id gocache $(go env GOCACHE)
-    COPY ./hack-todo-remove/go-github.patch go-github.patch
-    RUN git apply go-github.patch && GOOS=linux GOARCH=$NATIVEARCH go generate ./...
-    SAVE ARTIFACT . AS LOCAL go-github
-
 # This target is used to setup a common Go environment used for both builds and tests.
 go-environment:
     ARG NATIVEARCH
     # This keeps the Go version set in a single place
     # A container is used to pin the `sed` dependency. `LOCALLY` could be used instead, but is
     # disallowed by the `--strict` Earthly flag which is used to help enfore reproducability.
-    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
+    FROM --platform="linux/$NATIVEARCH" alpine:3.22.2
     WORKDIR /gomod
     COPY go.mod .
     LET GO_VERSION=$(sed -rn 's/^go (.*)$/\1/p' go.mod)
@@ -64,10 +32,6 @@ go-environment:
     # Load the source and download modules
     COPY . .
     RUN go mod download -x
-
-    # TODO remove this, this is a temp workaround
-    COPY +build-go-github-patch/* ./go-github
-    RUN go mod edit -replace github.com/google/go-github/v60=./go-github
 
 # Produces a single executable binary file for the target platform.
 binary:
@@ -102,14 +66,14 @@ container-image:
     # Setup for build
     # `IF` statements essentially run as shell `if` statements, so a build context must be declared
     # for them.
-    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
+    FROM --platform="linux/$NATIVEARCH" alpine:3.22.2
     LET IMAGE_TAG="latest"
     IF [ -n "$GIT_TAG" ]
         SET IMAGE_TAG="${GIT_TAG#v}"
     END
 
     # Do the actual build
-    FROM --platform="linux/$TARGETARCH" gcr.io/distroless/static-debian12
+    FROM --platform="linux/$TARGETARCH" gcr.io/distroless/static-debian13
     COPY (+binary/* --GOOS="linux" --GOARCH="$TARGETARCH") /
     # Unfortunately arg expansion is not supported here, see https://github.com/earthly/earthly/issues/1846
     ENTRYPOINT [ "/gha-exporter" ]
@@ -122,7 +86,7 @@ tarball:
     ARG NATIVEARCH
     ARG TARBALL_NAME="$BINARY_NAME-$GOOS-$GOARCH.tar.gz"
 
-    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
+    FROM --platform="linux/$NATIVEARCH" alpine:3.22.2
     WORKDIR /tarball
     COPY +binary/* .
     RUN tar -czvf "$TARBALL_NAME" *
@@ -131,7 +95,7 @@ tarball:
 helm:
     ARG OCI_REGISTRY
 
-    FROM alpine/helm:3.14.2
+    FROM alpine/helm:4.0.0
     WORKDIR /helm
     COPY ./helm .
 
@@ -164,13 +128,11 @@ test:
     WORKDIR /go/src
     CACHE --sharing shared --id gomodcache $(go env GOMODCACHE)
     CACHE --sharing shared --id gocache $(go env GOCACHE)
-    RUN GOOS="linux" GOARCH="$NATIVEARCH" go install gotest.tools/gotestsum@latest
+    RUN GOOS="linux" GOARCH="$NATIVEARCH" go install gotest.tools/gotestsum@v1.13.0
     RUN gotestsum --format "$OUTPUT_FORMAT" ./... -- -shuffle on -timeout 2m -race
 
 lint:
     ARG NATIVEARCH
-    # For options, see https://golangci-lint.run/usage/configuration/#command-line-options
-    ARG OUTPUT_FORMAT="colored-line-number"
 
     # Setup the linter and configure the environment
     FROM +go-environment
@@ -179,10 +141,10 @@ lint:
     CACHE $GOLANGCI_LINT_CACHE
     CACHE --sharing shared --id gomodcache $(go env GOMODCACHE)
     CACHE --sharing shared --id gocache $(go env GOCACHE)
-    RUN GOOS="linux" GOARCH="$NATIVEARCH" go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
+    RUN GOOS="linux" GOARCH="$NATIVEARCH" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2
 
     # Run the linter
-    RUN golangci-lint run ./... --out-format "$OUTPUT_FORMAT"
+    RUN golangci-lint run ./...
 
 # Removes local file and container image artifacts.
 clean:
@@ -198,7 +160,7 @@ clean:
 
 changelog-environment:
     ARG NATIVEARCH
-    FROM --platform="linux/$NATIVEARCH" node:21.6-alpine3.18
+    FROM --platform="linux/$NATIVEARCH" node:25.2.1-alpine3.21
     WORKDIR /changelog
     CACHE --sharing shared --id npm $(echo "$HOME/.npm")
     RUN npm install --global '@geut/chan@3.2.9'
@@ -292,7 +254,7 @@ release:
     END
 
     # Create GH release and upload artifact(s)
-    FROM --platform="linux/$NATIVEARCH" alpine:3.19.0
+    FROM --platform="linux/$NATIVEARCH" alpine:3.22.2
 
     # Unfortunately GH does not release a container image for their CLI, see https://github.com/cli/cli/issues/2027
     RUN apk add github-cli

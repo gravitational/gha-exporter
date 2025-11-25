@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.13] - 2024-03-21
 ### Fixed
 - Fixed wrong default value for grafana dashboard sidecar default label
+- Updated out of date dependencies
 
 ## [0.0.12] - 2024-03-21
 ### Fixed
