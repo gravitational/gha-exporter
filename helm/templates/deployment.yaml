@@ -47,7 +47,6 @@ spec:
             {{- end }}
             {{- if .Values.exporter.backfill.enabled }}
             - --backfill
-            - "true"
             {{- if .Values.exporter.backfill.initialWindow }}
             - --initial-window
             - {{ .Values.exporter.backfill.initialWindow | quote }}
