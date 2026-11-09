@@ -36,3 +36,10 @@ jobs:
           find outputs -type f -exec ls -lh "{}" \;
           find outputs -type f ! -name '*.t*' -exec file "{}" \;
           docker image ls gha-exporter
+      - name: Check Linux arm64 build
+        run: |
+          set -o pipefail
+          earthly --ci --output +tarball --GOOS=linux --GOARCH=arm64
+          tar -xOzf outputs/linux/arm64/gha-exporter-linux-arm64.tar.gz gha-exporter \
+            | file - \
+            | grep -q 'ARM aarch64'

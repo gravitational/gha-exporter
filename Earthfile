@@ -88,7 +88,7 @@ tarball:
 
     FROM --platform="linux/$NATIVEARCH" alpine:3.22.2
     WORKDIR /tarball
-    COPY +binary/* .
+    COPY (+binary/* --GOOS="$GOOS" --GOARCH="$GOARCH") .
     RUN tar -czvf "$TARBALL_NAME" *
     SAVE ARTIFACT $TARBALL_NAME AS LOCAL "outputs/$GOOS/$GOARCH/$TARBALL_NAME"
 
